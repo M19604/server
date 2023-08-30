@@ -1,6 +1,9 @@
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-<script src="https://cdn.scaledrone.com/scaledrone.min.js"></script>
-<script>
+var s1 = document.createElement("script");
+s1.src = "https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js";
+document.body.appendChild(s1);
+var s2 = document.createElement("script");
+s2.src = "https://cdn.scaledrone.com/scaledrone.min.js";
+document.body.appendChild(s2);
   var ip = "";
     $.getJSON("https://ipinfo.io", function(data) {
         ip = data.ip;
@@ -35,4 +38,3 @@ content: text
 }
 })
 }
-</script>
