@@ -1,3 +1,4 @@
+window.onload = function() {
 var s1 = document.createElement("script");
 s1.src = "https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js";
 document.body.appendChild(s1);
@@ -37,4 +38,5 @@ name: ip,
 content: text
 }
 })
+}
 }
