@@ -27,7 +27,7 @@ return;
 }
 })
 })
-function server(text) {
+window.server = function server(text) {
 sendMessageToScaleDrone(ip, text);
 }
 function sendMessageToScaleDrone(name, text) {
