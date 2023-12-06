@@ -1,162 +1,29 @@
-<title>Server</title>
-<style>
-    body {
-        margin: 0;
-        font-family: monospace;
-        color: #fff;
-        background-color: #000;
-        font-size: 1vw;
-    }
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Racket Socket Testing</title>
+</head>
+<body>
+    <ul id="messages"></ul>
+    <form id="form" action="">
+        <input id="input" autocomplete="off"><button>Send</button>
+    </form>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
 
-    ::-webkit-scrollbar {
-        display: none;
-    }
+        const form = document.getElementById("form");
+        const input = document.getElementById("input");
 
-    ::selection {
-        color: #000;
-        background-color: #fff;
-    }
-
-    span {
-        display: block;
-        padding: 1vw;
-    }
-
-    #server {
-        height: 80%;
-        overflow-y: auto;
-        overflow-x: hidden;
-        position: absolute;
-        top: 0;
-        left: 0;
-    }
-
-    #terminal {
-        height: 20%;
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        background-color: #222;
-        overflow-y: auto;
-        overflow-x: hidden;
-    }
-
-    #terminal::selection {
-        color: #222;
-        background-color: #fff;
-    }
- 
-    #terminal .navbar {
-        background-color: #333;
-    }
-
-    #terminal #input:before {
-        content: ">";
-        padding-right: 1vw;
-    }
-
-    #terminal #input:after {
-        content: "█";
-        animation: blink 1s infinite step-end;
-    }
-
-    @keyframes blink {
-        50% {
-            opacity: 0;
-        }
-    }
-</style>
-<div id="server"></div>
-<div id="terminal">
-    <div class="navbar">
-
-    </div>
-    <span id="input"></span>
-</div>
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
-<script src="https://cdn.scaledrone.com/scaledrone.min.js"></script>
-<script>
-    var ip = "";
-    $.getJSON("https://ipinfo.io", function(data) {
-        ip = data.ip;
-    }, "json")
-    function getLocation() {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(showLocation)
-            function showLocation(position) {
-                addResult("Latitude: " + position.coords.latitude + ", Longitude: " + position.coords.longitude + " " + position.coords.speed);
-            }
-        } else {
-            addResult("This action is unavailable.");
-        }
-    }
-    function addResult(text) {
-        var result = document.createElement("span");
-        result.textContent = text;
-        document.getElementById("terminal").appendChild(result);
-    }
-
-    var input = document.getElementById("input");
-    var characters = "abcdefghijklmnopqrstuvwxyz 1234567890!@#$%^&*()_+=-][}{}]|';:/.,<>?`~";
-    document.body.addEventListener("keydown", e => {
-        if (e.key === '"' || characters.includes(e.key.toLowerCase())) {
-            input.textContent += e.key;
-        }
-        if (e.key === "Backspace") {
-            input.textContent = input.textContent.substring(0, input.textContent.length - 1);
-        }
-        if (e.key === "Enter") {
-            if (input.textContent[0] === "?") {
-                server(input.textContent.replace("?", "").trim());
-                input.textContent = "";
-                return;
-            }
-            try {
-                eval(input.textContent);
-                addResult("> " + input.textContent);
-            } catch (err) {
-                addResult(err);
-            }
-            input.textContent = "";
-            document.getElementById("terminal").appendChild(input);
-        }
-        document.getElementById("terminal").scrollTo(0, document.getElementById("terminal").scrollHeight);
-    })
-    const drone = new Scaledrone("F5e3EkTFDFfshEty");
-    drone.on("open", function(error) {
-        if (error) {
-            var message = document.createElement("span");
-            message.textContent = error;
-            document.getElementById("server").appendChild(message);
-            return;
-        }
-        var room = drone.subscribe("ServerBackend");
-        room.on("open", function(error) {
-            if (error) {
-                var message = document.createElement("span");
-                message.textContent = error;
-                document.getElementById("server").appendChild(message);
-                return;
+        form.addEventListener("submit", (e) => {
+            e.preventDefault();
+            if (input.value) {
+                socket.emit("chat-message", input.value);
+                input.value = "";
             }
         })
-        room.on("data", addMessageToScreen);
-    })
-    function server(text) {
-        sendMessageToScaleDrone(ip, text);
-    }
-    function sendMessageToScaleDrone(name, text) {
-        drone.publish({
-            room: "ServerBackend",
-            message: {
-                name: ip,
-                content: text
-            }
-        })
-    }
-    function addMessageToScreen(message) {
-        var div = document.createElement("div");
-        div.textContent = message.name + " : " + message.content;
-        document.getElementById("server").appendChild(div);
-    }
-</script>
+    </script>
+</body>
+</html>
