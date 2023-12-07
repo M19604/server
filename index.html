@@ -1,29 +1,1960 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Racket Socket Testing</title>
-</head>
-<body>
-    <ul id="messages"></ul>
-    <form id="form" action="">
-        <input id="input" autocomplete="off"><button>Send</button>
-    </form>
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-        const socket = io();
+<!-- MADE BY LUKE SKUTT, 2023 -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Nunito Sans">
+<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+<script src="/socket.io/socket.io.js"></script>
+<title>Racket</title>
+<div id="chat">
+<form id="chatForm">
+<input id="message" name="Message" placeholder="Type here..." maxlength="250" autocomplete="off">
+<input id="serverName" name="Server" value="Racket" hidden>
+<input id="chatUsername" name="Username" value="" hidden>
+</form>
+</div>
+<div class="sidebar">
+<div class="material-icons" id="dmsBTN">forum<div class="notificationIcon"></div></div>
+<div class="addServer">+</div>
+<div class="material-icons" id="signoutBTN">logout</div>
+</div>
+<div id="serverPage">
+<div id="serverContainer">
+<div class="title">Add Server<div class="close">&times;</div></div>
+<div class="btnContainer">
+<div class="selectBTN" id="joinServer"><div class="material-icons">group</div><div class="text">Join Server</div></div>
+<div style="left: 55%" class="selectBTN" id="createServer"><div class="material-icons">add</div><div class="text">Create Server</div></div>
+</div>
+<div id="createServerPage">
+<form id="serverForm">
+<div class="serverNameTitle">Custom Server Name:</div>
+<input name="serverName" id="addServerName" placeholder="Server Name..." maxlength="32">
+<div class="serverCodeTitle">Custom Join Code:</div>
+<input name="serverCode" id="serverCode" placeholder="Server Code..." maxlength="15">
+<div class="serverCreateBTN">&plus; Create</div>
+<input id="serverUsername" name="serverUsername" value="" hidden>
+</form>
+</div>
+<div id="joinServerPage">
+<form id="joinServerForm">
+<div class="serverNameTitle">Server Join Code:</div>
+<input name="serverName" id="joinServerName" placeholder="Join Code..." maxlength="15">
+<div class="serverCreateBTN" id="serverJoinBTN">&plus; Join</div>
+<input id="joinServerUsername" name="joinServerUsername" value="" hidden>
+</form>
+</div>
+</div>
+</div>
+<div id="loginPage">
+<div id="loginContainer">
+<div class="title">Login</div>
+<form id="loginForm">
+<input id="loginUsername" placeholder="Username..." maxlength="32">
+<input id="loginPassword" placeholder="Password..." type="password">
+<div class="loginSubmit" onclick="login()">Login</div>
+</form>
+<div class="gotoSignup" onclick="openSignup()">Don't have an account? Sign up!</div>
+</div>
+</div>
+<div id="signupPage">
+<div id="signupContainer">
+<div class="title">Create an account</div>
+<form id="signupForm">
+<input name="loginUsername" id="signupUsername" placeholder="Username..." maxlength="32">
+<input name="loginPassword" id="signupPassword" placeholder="Password..." type="password">
+<div class="signupSubmit" onclick="signup()">Signup</div>
+</form>
+<div class="gotoSignup" onclick="openLogin()">Already have an account? Log in!</div>
+</div>
+</div>
+<div id="alert" onclick="closeAlert()">Invalid username or password!</div>
+<div id="errorPage">
+<div id="errorPageCode"></div>
+<div id="errorPageText"></div>
+<div class="retryBTN" onclick="location.reload()">Retry</div>
+</div>
+<div id="serverNameElement"></div>
+<div class="material-icons" id="memberListBTN">menu</div>
+<div id="memberList">
+<div id="memberListTitle"></div>
+</div>
+<div id="memberListBox"></div>
+<div id="dmsPage">
+<div class="userTitle">Direct Messages</div>
+<input id="userSearch" placeholder="Search users...">
+<div id="dmContainer"></div>
+</div>
+</div>
+</div>
+<div id="dmChat">
+<form id="dmForm">
+<input id="dmMessage" name="Message" placeholder="Type here..." maxlength="250" autocomplete="off">
+<input id="dmName" name="DMTitle" value="" hidden>
+<input id="dmUsername" name="Username" value="" hidden>
+</form>
+</div>
+<form id="logForm" hidden>
+<input id="uuid" name="UUID">
+<input id="logAccount" name="Account">
+</form>
+<style>
+body {
+margin: 0;
+font-family: "Nunito Sans";
+display: flex;
+align-items: center;
+justify-content: center;
+background-color: #121212;
+opacity: 0;
+overflow: hidden;
+}
 
-        const form = document.getElementById("form");
-        const input = document.getElementById("input");
+::-webkit-scrollbar {
+display: none;
+}
 
-        form.addEventListener("submit", (e) => {
-            e.preventDefault();
-            if (input.value) {
-                socket.emit("chat-message", input.value);
-                input.value = "";
-            }
-        })
-    </script>
-</body>
-</html>
+::selection {
+color: #1e1e1e;
+background-color: #bb86fc;
+}
+
+#dmChat,
+#chat {
+width: 92%;
+height: 100%;
+background-color: #292929;
+position: absolute;
+right: 0;
+overflow-y: auto;
+padding-bottom: 8vw;
+padding-top: 3vw;
+z-index: 0;
+}
+
+#dmChat {
+display: none;
+z-index: 5;
+}
+
+#dmChat #dmMessage,
+#chat #message {
+width: 92%;
+outline: none;
+border: none;
+border-top: .15vw solid #0c0c0c;
+background-color: #1e1e1e;
+padding: .5vw;
+font-size: 1.5vw;
+color: #fff;
+position: fixed;
+bottom: 0;
+right: 0;
+user-select: none;
+z-index: 2;
+}
+
+#dmChat .message,
+#chat .message {
+padding: 1vw;
+width: 100%;
+box-sizing: border-box;
+transition: .5s;
+position: relative;
+}
+
+#dmChat .message:hover,
+#chat .message:hover {
+background-color: #252525;
+}
+
+#dmChat .message .header,
+#chat .message .header {
+display: flex;
+align-items: center;
+}
+
+#dmChat .message #icon,
+#chat .message #icon {
+width: 3vw;
+height: 3vw;
+display: inline-flex;
+align-items: center;
+justify-content: center;
+color: #e1e1e1;
+border-radius: 50%;
+font-weight: bold;
+user-select: none;
+box-shadow: 0 .15vw .5vw #1e1e1e;
+}
+
+#dmChat .message #verified,
+#dmChat .message #username,
+#chat .message #verified,
+#chat .message #username {
+color: #e1e1e1;
+display: inline-flex;
+padding: .25vw;
+font-size: 1.5vw;
+box-sizing: border-box;
+font-weight: bold;
+align-items: center;
+padding-left: 1vw;
+user-select: none;
+}
+
+#dmChat .message #verified,
+#chat .message #verified {
+padding-left: .25vw;
+color: #bb86fc;
+}
+
+#dmChat .message #messageText,
+#chat .message #messageText {
+color: #e1e1e1;
+font-size: 1.5vw;
+padding-left: 4vw;
+overflow-wrap: break-word;
+}
+
+#dmChat .message #timestamp,
+#chat .message #timestamp {
+position: absolute;
+top: 0;
+right: 0;
+padding: 1vw;
+color: #999999;
+font-size: 1vw;
+font-weight: bold;
+display: none;
+user-select: none;
+}
+
+#dmChat .message:hover #timestamp,
+#chat .message:hover #timestamp {
+display: block;
+}
+
+.sidebar {
+background-color: #121212;
+width: 8%;
+height: 85%;
+position: absolute;
+top: 0;
+left: 0;
+overflow-y: auto;
+overflow-x: hidden;
+}
+
+.sidebar #dmsBTN,
+.sidebar .addServer,
+.sidebar .server {
+color: #e1e1e1;
+background-color: #bb86fc;
+font-weight: bold;
+font-size: 2vw;
+width: 5vw;
+height: 5vw;
+margin-left: 1.5vw;
+margin-top: 1.5vw;
+border-radius: 50%;
+display: flex;
+align-items: center;
+justify-content: center;
+user-select: none;
+cursor: pointer;
+position: relative;
+}
+
+.sidebar #signoutBTN {
+width: 8%;
+height: 10%;
+padding: 2vw;
+box-sizing: border-box;
+color: tomato;
+font-size: 3vw;
+display: flex;
+align-items: center;
+justify-content: center;
+background-color: #121212;
+position: fixed;
+bottom: 0;
+left: 0;
+box-shadow: 0 -1vw 3vw #121212;
+user-select: none;
+cursor: pointer;
+transition: .5s;
+}
+
+.sidebar #signoutBTN:hover {
+color: #ff775e;
+}
+
+.sidebar #dmsBTN,
+.sidebar .addServer {
+background-color: #1e1e1e;
+box-shadow: 0 .15vw .5vw #0c0c0c;
+font-size: 3vw;
+transition: .3s;
+}
+
+.sidebar #dmsBTN:hover,
+.sidebar .addServer:hover {
+color: #bb86fc;
+}
+
+#serverPage {
+height: 100%;
+width: 100%;
+position: absolute;
+top: 0;
+left: 0;
+background-color: rgba(2,2,2,.5);
+display: flex;
+align-items: center;
+justify-content: center;
+display: none;
+opacity: 0;
+transition: .5s;
+z-index: 3;
+}
+
+#serverPage #serverContainer {
+height: 0%;
+width: 0%;
+background-color: #292929;
+border-radius: 1vw;
+border: .25vw solid #1e1e1e;
+padding: 1vw;
+box-sizing: border-box;
+box-shadow: 0 .25vw .5vw #0c0c0c;
+position: relative;
+user-select: none;
+transition: .3s;
+overflow: hidden;
+}
+
+#serverPage #serverContainer .title {
+color: #e1e1e1;
+font-size: 3vw;
+font-weight: bold;
+display: flex;
+align-items: center;
+position: relative;
+height: 10%;
+transition: .5s;
+opacity: 0;
+}
+
+#serverPage #serverContainer .title .close {
+position: absolute;
+right: 1vw;
+font-size: 5vw;
+color: #b1b1b1;
+transition: .3s;
+}
+
+#serverPage #serverContainer .title .close:hover {
+color: #e1e1e1;
+cursor: pointer;
+}
+
+#serverPage #serverContainer .btnContainer {
+width: 100%;
+height: 90%;
+position: relative;
+transition: .5s;
+opacity: 0;
+}
+
+#serverPage #serverContainer .btnContainer .selectBTN {
+width: 35%;
+height: 55%;
+background-color: #1e1e1e;
+border-radius: 1vw;
+border: .25vw solid #513f6c;
+position: absolute;
+top: 22.5%;
+left: 10%;
+color: #e1e1e1;
+transition: .5s;
+cursor: pointer;
+text-align: center;
+}
+
+#serverPage #serverContainer .btnContainer .selectBTN:hover {
+border: .25vw solid #bb86fc;
+box-shadow: 0 .25vw .5vw #1e1e1e;
+}
+
+#serverPage #serverContainer .btnContainer .selectBTN .material-icons {
+width: 100%;
+height: 50%;
+position: absolute;
+top: 10%;
+left: 0;
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 8vw;
+}
+
+#serverPage #serverContainer .btnContainer .selectBTN .text {
+width: 100%;
+height: 50%;
+position: absolute;
+bottom: 10%;
+left: 0;
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 3vw;
+font-weight: 1000;
+}
+
+#serverPage #serverContainer #createServerPage {
+width: 100%;
+height: 80%;
+position: absolute;
+transition: .5s;
+background-color: #292929;
+bottom: 0;
+right: -100%;
+}
+
+#serverPage #serverContainer #createServerPage #serverCode,
+#serverPage #serverContainer #joinServerName,
+#serverPage #serverContainer #createServerPage #addServerName {
+width: 75%;
+background-color: #1e1e1e;
+color: #e1e1e1;
+padding: 1vw;
+font-size: 2vw;
+border-radius: 1vw;
+border: .15vw solid #513f6c;
+outline: none;
+transition: .5s;
+position: absolute;
+left: 12.5%;
+top: 10%;
+box-sizing: border-box;
+}
+
+#serverPage #serverContainer #createServerPage #serverCode:hover,
+#serverPage #serverContainer #createServerPage #serverCode:focus,
+#serverPage #serverContainer #joinServerName:hover,
+#serverPage #serverContainer #joinServerName:focus,
+#serverPage #serverContainer #createServerPage #addServerName:hover,
+#serverPage #serverContainer #createServerPage #addServerName:focus {
+border: .15vw solid #bb86fc;
+box-shadow: 0 .05vw .5vw #0c0c0c;
+}
+
+::placeholder {
+color: #b3b3b3;
+}
+
+#serverPage #serverContainer #createServerPage .serverCodeTitle,
+#serverPage #serverContainer #createServerPage .serverNameTitle {
+color: #fff;
+font-size: 2vw;
+position: absolute;
+left: 12.5%;
+top: -1%;
+}
+
+#serverPage #serverContainer #createServerPage .serverCodeTitle {
+top: 35%;
+}
+
+#serverPage #serverContainer #createServerPage #serverCode {
+top: 46%;
+}
+
+#serverPage #serverContainer #createServerPage .serverCreateBTN {
+width: 75%;
+position: absolute;
+left: 12.5%;
+top: 75%;
+padding: 1vw;
+background-color: #bb86fc;
+filter: brightness(85%);
+color: #fff;
+display: flex;
+align-items: center;
+justify-content: center;
+box-sizing: border-box;
+font-size: 2vw;
+border-radius: 1vw;
+font-weight: 1000;
+transition: .5s;
+cursor: pointer;
+}
+
+#serverPage #serverContainer #createServerPage .serverCreateBTN:hover {
+filter: brightness(100%);
+box-shadow: 0 .15vw .5vw #1e1e1e;
+}
+
+#serverPage #serverContainer #joinServerPage {
+width: 100%;
+height: 80%;
+position: absolute;
+transition: .5s;
+background-color: #292929;
+bottom: 0;
+left: -100%;
+}
+
+#serverPage #serverContainer #joinServerPage #serverCode,
+#serverPage #serverContainer #joinServerPage #addServerName {
+width: 75%;
+background-color: #1e1e1e;
+color: #e1e1e1;
+padding: 1vw;
+font-size: 2vw;
+border-radius: 1vw;
+border: .15vw solid #513f6c;
+outline: none;
+transition: .5s;
+position: absolute;
+left: 12.5%;
+top: 10%;
+box-sizing: border-box;
+}
+
+#serverPage #serverContainer #joinServerPage #serverCode:hover,
+#serverPage #serverContainer #joinServerPage #serverCode:focus,
+#serverPage #serverContainer #joinServerPage #addServerName:hover,
+#serverPage #serverContainer #joinServerPage #addServerName:focus {
+border: .15vw solid #bb86fc;
+box-shadow: 0 .05vw .5vw #0c0c0c;
+}
+
+::placeholder {
+color: #b3b3b3;
+}
+
+#serverPage #serverContainer #joinServerPage .serverCodeTitle,
+#serverPage #serverContainer #joinServerPage .serverNameTitle {
+color: #fff;
+font-size: 2vw;
+position: absolute;
+left: 12.5%;
+top: -1%;
+}
+
+#serverPage #serverContainer #joinServerPage .serverCodeTitle {
+top: 35%;
+}
+
+#serverPage #serverContainer #joinServerPage #serverCode {
+top: 46%;
+}
+
+#serverPage #serverContainer #joinServerPage .serverCreateBTN {
+width: 75%;
+position: absolute;
+left: 12.5%;
+top: 75%;
+padding: 1vw;
+background-color: #bb86fc;
+filter: brightness(85%);
+color: #fff;
+display: flex;
+align-items: center;
+justify-content: center;
+box-sizing: border-box;
+font-size: 2vw;
+border-radius: 1vw;
+font-weight: 1000;
+transition: .5s;
+cursor: pointer;
+}
+
+#serverPage #serverContainer #joinServerPage .serverCreateBTN:hover {
+filter: brightness(100%);
+box-shadow: 0 .15vw .5vw #1e1e1e;
+}
+
+#loginPage {
+height: 100%;
+width: 100%;
+position: absolute;
+top: 0;
+left: 0;
+background-color: #1e1e1e;
+display: flex;
+align-items: center;
+justify-content: center;
+z-index: 3;
+}
+
+#loginPage #loginContainer {
+width: 50%;
+height: 75%;
+background-color: #292929;
+box-shadow: 0 .5vw .5vw #181818;
+border-radius: 1vw;
+position: relative;
+transition: .5s;
+}
+
+#loginPage #loginContainer .title {
+width: 100%;
+height: 20%;
+display: flex;
+align-items: center;
+padding: 2vw;
+box-sizing: border-box;
+color: #fff;
+font-size: 3.5vw;
+font-weight: bold;
+user-select: none;
+justify-content: center;
+}
+
+#loginPage #loginContainer .gotoSignup {
+color: #bb86fc;
+font-weight: bold;
+width: 100%;
+position: absolute;
+bottom: 0;
+height: 15%;
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 1.5vw;
+cursor: pointer;
+user-select: none;
+}
+
+#loginPage #loginContainer .gotoSignup:after {
+content:"";
+position: absolute;
+bottom: 25%;
+background-color: #bb86fc;
+width: 0%;
+height: .25vw;
+transition: .5s;
+}
+
+#loginPage #loginContainer .gotoSignup:hover:after {
+width: 35%;
+}
+
+#loginPage #loginContainer .loginSubmit,
+#loginPage #loginContainer #loginPassword,
+#loginPage #loginContainer #loginUsername {
+width: 65%;
+padding: 2vw;
+font-size: 2vw;
+background-color: #1e1e1e;
+color: #e1e1e1;
+border-radius: 1vw;
+position: absolute;
+left: 17.5%;
+border: .15vw solid #1e1e1e;
+outline: none;
+transition: .5s;
+}
+
+#loginPage #loginContainer #loginPassword:hover,
+#loginPage #loginContainer #loginUsername:hover {
+border: .15vw solid #121212;
+}
+
+#loginPage #loginContainer #loginPassword:focus,
+#loginPage #loginContainer #loginUsername:focus {
+border: .15vw solid #bb86fc;
+box-shadow: 0 0 .20vw #aa76eb;
+}
+
+#loginPage #loginContainer #loginPassword {
+top: 45%;
+}
+
+#loginPage #loginContainer .loginSubmit {
+top: 70%;
+text-align: center;
+box-sizing: border-box;
+background-color: #8561b1;
+font-size: 2.5vw;
+font-weight: 1000;
+padding: 1vw;
+user-select: none;
+cursor: pointer;
+filter: brightness(75%);
+}
+
+#loginPage #loginContainer .loginSubmit.active {
+filter: brightness(100%);
+}
+
+#loginPage #loginContainer .loginSubmit.active:hover {
+filter: brightness(125%);
+}
+
+#signupPage {
+height: 100%;
+width: 100%;
+position: absolute;
+top: 0;
+left: 0;
+background-color: #1e1e1e;
+display: flex;
+align-items: center;
+justify-content: center;
+z-index: 3;
+display: none;
+}
+
+#signupPage #signupContainer {
+width: 50%;
+height: 75%;
+background-color: #292929;
+box-shadow: 0 .5vw .5vw #181818;
+border-radius: 1vw;
+position: relative;
+transition: .5s;
+transform: translate(0, -2vw);
+opacity: 0;
+}
+
+#signupPage #signupContainer .title {
+width: 100%;
+height: 20%;
+display: flex;
+align-items: center;
+padding: 2vw;
+box-sizing: border-box;
+color: #fff;
+font-size: 3.5vw;
+font-weight: bold;
+user-select: none;
+justify-content: center;
+}
+
+#signupPage #signupContainer .gotoSignup {
+color: #bb86fc;
+font-weight: bold;
+width: 100%;
+position: absolute;
+bottom: 0;
+height: 15%;
+display: flex;
+align-items: center;
+justify-content: center;
+font-size: 1.5vw;
+cursor: pointer;
+user-select: none;
+}
+
+#signupPage #signupContainer .gotoSignup:after {
+content:"";
+position: absolute;
+bottom: 25%;
+background-color: #bb86fc;
+width: 0%;
+height: .25vw;
+transition: .5s;
+}
+
+#signupPage #signupContainer .gotoSignup:hover:after {
+width: 35%;
+}
+
+#signupPage #signupContainer .signupSubmit,
+#signupPage #signupContainer #signupPassword,
+#signupPage #signupContainer #signupUsername {
+width: 65%;
+padding: 2vw;
+font-size: 2vw;
+background-color: #1e1e1e;
+color: #e1e1e1;
+border-radius: 1vw;
+position: absolute;
+left: 17.5%;
+border: .15vw solid #1e1e1e;
+outline: none;
+transition: .5s;
+}
+
+#signupPage #signupContainer .signupSubmit.active {
+filter: brightness(100%);
+}
+
+#signupPage #signupContainer #signupPassword:hover,
+#signupPage #signupContainer #signupUsername:hover {
+border: .15vw solid #121212;
+}
+
+#signupPage #signupContainer #signupPassword:focus,
+#signupPage #signupContainer #signupUsername:focus {
+border: .15vw solid #bb86fc;
+box-shadow: 0 0 .20vw #aa76eb;
+}
+
+#signupPage #signupContainer #signupPassword {
+top: 45%;
+}
+
+#signupPage #signupContainer .signupSubmit {
+top: 70%;
+text-align: center;
+box-sizing: border-box;
+background-color: #8561b1;
+font-size: 2.5vw;
+font-weight: 1000;
+padding: 1vw;
+user-select: none;
+cursor: pointer;
+filter: brightness(75%);
+}
+
+#signupPage #signupContainer .signupSubmit.active:hover {
+filter: brightness(125%);
+}
+
+#alert {
+width: 65%;
+padding: .5vw;
+font-size: 1.5vw;
+background-color: #191919;
+border-radius: .5vw;
+box-shadow: 0 .25vw .5vw #0c0c0c;
+position: absolute;
+top: -8%;
+left: 17vw;
+color: tomato;
+cursor: pointer;
+transition: .5s;
+text-align: center;
+z-index: 999;
+}
+
+#alert:hover {
+filter: brightness(125%);
+}
+
+#errorPage {
+width: 100%;
+height: 100%;
+position: absolute;
+top: 0;
+left: 0;
+background-color: #1d1d1d;
+user-select: none;
+z-index: 999;
+display: none;
+}
+
+#errorPageCode {
+display: flex;
+align-items: end;
+justify-content: center;
+width: 100%;
+height: 50%;
+padding: 1vw;
+box-sizing: border-box;
+color: #e1e1e1;
+font-size: 13vw;
+font-family: sans-serif;
+font-weight: 1000;
+position: absolute;
+top: 0;
+left: 0;
+}
+
+#errorPageText {
+display: flex;
+align-items: start;
+justify-content: center;
+width: 80%;
+height: 50%;
+padding: 1vw;
+box-sizing: border-box;
+color: #e1e1e1;
+font-size: 3vw;
+position: absolute;
+bottom: 0;
+left: 10%;
+text-align: center;
+}
+
+.retryBTN {
+color: #fff;
+font-size: 3vw;
+width: 15%;
+padding: 1vw;
+position: absolute;
+left: 41.5%;
+height: 7%;
+display: flex;
+align-items: center;
+justify-content: center;
+bottom: 10%;
+border: .25vw solid #bb86fc;
+cursor: pointer;
+}
+
+#serverNameElement {
+padding-right: 1vw;
+padding-left: 1vw;
+background-color: #121212;
+box-shadow: 0 .15vw .5vw #0c0c0c;
+font-size: 2vw;
+color: #e1e1e1;
+position: absolute;
+left: 9%;
+top: 0;
+border-radius: 1vw;
+height: 5vw;
+display: none;
+align-items: center;
+justify-content: center;
+user-select: none;
+z-index: 5;
+}
+
+#memberListBTN {
+width: 5vw;
+height: 5vw;
+background-color: #121212;
+box-shadow: 0 .15vw .5vw #0c0c0c;
+border-radius: 50%;
+color: #e1e1e1;
+font-size: 3vw;
+display: flex;
+align-items: center;
+justify-content: center;
+position: absolute;
+top: 1vw;
+right: 1vw;
+user-select: none;
+cursor: pointer;
+transition: .5s;
+z-index: 1;
+}
+
+#memberListBTN:hover {
+filter: brightness(115%);
+}
+
+#memberList {
+height: 100%;
+width: 25%;
+background-color: #1e1e1e;
+position: absolute;
+top: 0;
+right: -25%;
+transition: .5s;
+box-shadow: 0 .15vw 5vw #0c0c0c;
+overflow-y: auto;
+z-index: 2;
+}
+
+#memberListBox {
+width: 100%;
+height: 100%;
+position: absolute;
+top: 0;
+left: 0;
+display: none;
+opacity: .5;
+background-color: #121212;
+cursor: pointer;
+}
+
+#memberList #memberListTitle {
+width: 100%;
+font-size: 2vw;
+color: #fff;
+font-weight: bold;
+text-align: center;
+padding: 1vw;
+box-sizing: border-box;
+user-select: none;
+box-shadow: 0 1vw 3vw #1e1e1e;
+position: sticky;
+top: 0;
+background-color: #1e1e1e;
+}
+
+#memberList .member {
+width: 100%;
+padding: .5vw;
+box-sizing: border-box;
+text-align: center;
+}
+
+#memberList .member #memberIcon {
+width: 3vw;
+height: 3vw;
+border-radius: 50%;
+display: inline-flex;
+align-items: center;
+justify-content: center;
+color: #e1e1e1;
+font-weight: bold;
+box-shadow: 0 .15vw .5vw #0c0c0c;
+user-select: none;
+font-size: 1.5vw;
+}
+
+#memberList .member #memberName {
+display: inline-flex;
+align-items: center;
+justify-content: center;
+color: #e1e1e1;
+height: 5vw;
+padding-left: 1vw;
+font-size: 1.5vw;
+user-select: none;
+}
+
+#dmsPage {
+position: absolute;
+top: 0;
+width: 92%;
+height: 100%;
+right: -100%;
+background-color: #292929;
+transition: .5s;
+z-index: 4;
+display: none;
+}
+
+#dmsPage #userSearch {
+width: 75%;
+background-color: #1e1e1e;
+box-shadow: 0 .15vw .5vw #0c0c0c;
+position: absolute;
+top: 10%;
+left: 12.5%;
+padding: 1vw;
+box-sizing: border-box;
+border-radius: 5vw;
+color: #fff;
+border: none;
+outline: none;
+font-size: 2vw;
+height: 8%;
+padding-left: 3vw;
+padding-right: 3vw;
+transition: .5s;
+}
+
+#dmsPage #userSearch:hover,
+#dmsPage #userSearch:focus {
+filter: brightness(110%);
+}
+
+#dmsPage .userTitle {
+color: #e1e1e1;
+font-size: 3vw;
+font-weight: 1000;
+position: absolute;
+width: 75%;
+top: 2%;
+left: 12.5%;
+display: flex;
+align-items: center;
+justify-content: center;
+user-select: none;
+height: 8%;
+}
+
+.notificationIcon {
+width: 1.5vw;
+height: 1.5vw;
+background-color: #bb86fc;
+position: absolute;
+bottom: 0;
+right: 0;
+border: .5vw solid #0c0c0c;
+border-radius: 50%;
+display: none;
+}
+
+#dmsPage #dmContainer {
+position: absolute;
+top: 20%;
+right: 0;
+width: 100%;
+height: 80%;
+overflow-y: auto;
+}
+
+#dmsPage .dmMessage {
+width: 75%;
+background-color: #1e1e1e;
+height: 10%;
+margin-left: 12.5%;
+padding: 1vw;
+box-sizing: border-box;
+border-radius: 55vw;
+display: flex;
+align-items: center;
+padding-left: 3vw;
+position: relative;
+margin-bottom: 2vw;
+}
+
+#dmsPage .dmMessage #icon {
+width: 5vh;
+height: 5vh;
+display: inline-flex;
+align-items: center;
+justify-content: center;
+color: #e1e1e1;
+border-radius: 50%;
+font-weight: bold;
+user-select: none;
+box-shadow: 0 .15vw .5vw #1e1e1e;
+background-color: mediumseagreen;
+}
+
+#dmsPage .dmMessage #verified,
+#dmsPage .dmMessage #username {
+color: #e1e1e1;
+display: inline-flex;
+padding: .25vw;
+font-size: 2vw;
+box-sizing: border-box;
+font-weight: bold;
+align-items: center;
+padding-left: 1vw;
+user-select: none;
+}
+
+#dmsPage .dmMessage #verified {
+padding-left: .25vw;
+color: #bb86fc;
+}
+
+#dmsPage .dmMessage #timestamp {
+padding: 1vw;
+color: #999;
+font-size: 2vw;
+font-weight: bold;
+user-select: none;
+position: absolute;
+right: 3%;
+}
+</style>
+<script>
+var socket = io();
+var loaded = false;
+var loadTime = 4500;
+var form = document.getElementById("chatForm");
+var input = document.getElementById("message");
+var serverData = null;
+form.addEventListener("submit", e => {
+e.preventDefault();
+})
+var slowmodeTime = 5;
+var slowmode = 0;
+socket.on("chat message", (msg) => {
+var sn = msg.split(" - ")[0].split(" >> ")[0];
+var st = msg.split(" - ")[0].split(" >> ")[1] + " - " + msg.split(" - ")[1];
+var obj = {};
+obj[sn] = st;
+serverData.push(obj);
+if (msg.split(" - ")[0].split(" >> ")[0] === document.getElementById("serverName").value) {
+var ele = document.createElement("div");
+ele.className = "message";
+var header = document.createElement("div");
+header.className = "header";
+var icon = document.createElement("div");
+icon.id = "icon";
+var username = document.createElement("a");
+username.id = "username";
+var text = document.createElement("a");
+text.id = "messageText";
+var timestamp = document.createElement("div");
+timestamp.id = "timestamp";
+var d = new Date();
+if (d.getHours() > 12) {
+timestamp.textContent = d.getMonth() + 1 + "/" + d.getDate() + "/" + d.getFullYear() + " - " + d.getHours() % 12 + ":" + d.getMinutes() + " PM";
+} else {
+timestamp.textContent = d.getMonth() + 1 + "/" + d.getDate() + "/" + d.getFullYear() + " - " + d.getHours() + ":" + d.getMinutes() + " AM";
+}
+username.textContent = msg.split(" - ")[0].split(" >> ")[1];
+if (msg.split(" - ")[0].split(" >> ")[1].includes(" ")) {
+icon.textContent = msg.split(" - ")[0].split(" >> ")[1][0] + msg.split(" - ")[0].split(" >> ")[1].split(" ")[1][0];
+} else {
+icon.textContent = msg.split(" - ")[0].split(" >> ")[1][0];
+}
+var colors = ["tomato", "orange", "mediumseagreen", "dodgerBlue", "violet"];
+icon.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+text.textContent = msg.split(" - ")[1];
+document.getElementById("chat").appendChild(ele);
+ele.appendChild(header);
+header.appendChild(icon);
+header.appendChild(username);
+ele.appendChild(text);
+ele.appendChild(timestamp);
+document.getElementById("chat").scrollTo(0,document.getElementById("chat").scrollHeight);
+for (let i = 0; i < serverData.length; i++) {
+if (serverData[i]["VERIFIEDSUPPORTERS"] === document.getElementById("chatUsername").value) {
+var vs = document.createElement("a");
+vs.id = "verified";
+vs.className = "material-icons";
+vs.title = "Verified Supporter";
+vs.textContent = "verified_user";
+username.appendChild(vs);
+}
+}
+}
+})
+input.addEventListener("keyup", e => {
+if (e.key === "Enter" && input.value.trim() !== "" && slowmode === 0 && loaded === false && document.getElementById("chatUsername").value.trim() !== "") {
+socket.emit("chat message", document.getElementById("serverName").value + " >> " + document.getElementById("chatUsername").value + " - " + input.value);
+var scriptURL = "https://script.google.com/macros/s/AKfycbzcp7SZ5TMRHjm1Gz7i5zNcTGDuMNHrDcFxPTIvW-49zn8zaCOW1lhmUHDjVK45zAnBLw/exec";
+fetch(scriptURL, {method:"POST", body: new FormData(form)});
+input.value = "";
+var interval = setInterval(function() {
+slowmode += 1;
+if (slowmode > slowmodeTime) {
+clearInterval(interval);
+slowmode = 0;
+}
+}, 1000)
+}
+})
+document.addEventListener("click", e => {
+if (e.target.className === "server") {
+document.getElementById("dmsPage").style.right = "-100%";
+document.getElementById("dmChat").style.display = "none";
+document.getElementById("serverName").value = e.target.name;
+var messages = document.getElementsByClassName("message");
+while (messages[0]) {
+messages[0].remove();
+}
+for (let i = 0; i < serverData.length; i++) {
+var messageData = serverData[i][document.getElementById("serverName").value];
+if (messageData !== "") {
+var ele = document.createElement("div");
+ele.className = "message";
+var header = document.createElement("div");
+header.className = "header";
+var icon = document.createElement("div");
+icon.id = "icon";
+var username = document.createElement("a");
+username.id = "username";
+var text = document.createElement("a");
+text.id = "messageText";
+var timestamp = document.createElement("div");
+timestamp.id = "timestamp";
+timestamp.textContent = serverData[i]["TIMESTAMP"];
+username.textContent = messageData.split(" - ")[0] + " ";
+if (messageData.split(" - ")[0].trim().includes(" ") && messageData !== "") {
+icon.textContent = messageData.split(" - ")[0].split(" ")[0][0] + messageData.split(" - ")[0].split(" ")[1][0];
+} else {
+icon.textContent = messageData.split(" - ")[0][0];
+}
+var colors = ["tomato", "orange", "mediumseagreen", "dodgerBlue", "violet"];
+icon.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+text.textContent = messageData.split(" - ")[1];
+document.getElementById("chat").appendChild(ele);
+ele.appendChild(header);
+header.appendChild(icon);
+header.appendChild(username);
+ele.appendChild(text);
+ele.appendChild(timestamp);
+document.getElementById("chat").scrollTo(0,document.getElementById("chat").scrollHeight);
+for (let i = 0; i < serverData.length; i++) {
+if (serverData[i]["VERIFIEDSUPPORTERS"] === messageData.split(" - ")[0]) {
+var vs = document.createElement("a");
+vs.id = "verified";
+vs.className = "material-icons";
+vs.title = "Verified Supporter";
+vs.textContent = "verified_user";
+username.appendChild(vs);
+}
+}
+}
+}
+}
+if (e.target.className === "close") {
+setTimeout(function() {
+document.getElementById("serverContainer").getElementsByClassName("title")[0].style.opacity = 0;
+document.getElementById("serverContainer").getElementsByClassName("btnContainer")[0].style.opacity = 0;
+document.getElementById("createServerPage").style.right = "-100%";
+document.getElementById("joinServerPage").style.left = "-100%";
+}, 100)
+setTimeout(function() {
+document.getElementById("serverContainer").style.height = "0%";
+}, 500)
+setTimeout(function() {
+document.getElementById("serverContainer").style.width = "0%";
+}, 1100)
+setTimeout(function() {
+document.getElementById("serverPage").style.opacity = 0;
+}, 1700)
+setTimeout(function() {
+document.getElementById("serverPage").style.display = "none";
+}, 2200)
+}
+if (e.target.className === "addServer") {
+document.getElementById("dmsPage").style.right = "-100%";
+document.getElementById("dmChat").style.display = "none";
+document.getElementById("serverPage").style.display = "flex";
+setTimeout(function() {
+document.getElementById("serverPage").style.opacity = 1;
+}, 100)
+setTimeout(function() {
+document.getElementById("serverContainer").style.width = "65%";
+}, 500)
+setTimeout(function() {
+document.getElementById("serverContainer").style.height = "85%";
+}, 1100)
+setTimeout(function() {
+document.getElementById("serverContainer").getElementsByClassName("title")[0].style.opacity = 1;
+document.getElementById("serverContainer").getElementsByClassName("btnContainer")[0].style.opacity = 1;
+}, 1700)
+}
+if (e.target.id === "createServer" || e.target.parentElement.id === "createServer") {
+document.getElementById("createServerPage").style.right = 0;
+}
+if (e.target.id === "joinServer" || e.target.parentElement.id === "joinServer") {
+document.getElementById("joinServerPage").style.left = 0;
+}
+if (e.target.className === "serverCreateBTN" && document.getElementById("addServerName").value.trim() !== "" && document.getElementById("addServerName").value.trim() !== "" && document.getElementById("addServerName").value.trim() !== "SERVERCODES" && document.getElementById("addServerName").value.trim() !== "USERNAMES" && document.getElementById("addServerName").value.trim() !== "PASSWORDS" && !document.getElementById("addServerName").value.trim().includes("USER -") && document.getElementById("addServerName").value.trim() !== "SERVERLIST" && document.getElementById("addServerName").value.trim() !== "VERIFIEDSUPPORTERS" && document.getElementById("addServerName").value.trim() !== "SERVERCODES" && document.getElementById("addServerName").value.trim() !== "TIMESTAMP") {
+const form1 = document.getElementById("serverForm");
+var scriptURL = "https://script.google.com/macros/s/AKfycbxQLlIitJkjZIpIP2EzbdGXar-ZSIgO9ydb_YJOvlI3daHPZ3YmUn3Lm2cMzo32eWV-Kg/exec";
+fetch(scriptURL, {method:"POST", body: new FormData(form1)});
+document.getElementById("addServerName").value = "";
+document.getElementById("serverCode").value = "";
+setTimeout(function() {
+document.getElementById("serverContainer").getElementsByClassName("title")[0].style.opacity = 0;
+document.getElementById("serverContainer").getElementsByClassName("btnContainer")[0].style.opacity = 0;
+document.getElementById("createServerPage").style.right = "-100%";
+document.getElementById("joinServerPage").style.left = "-100%";
+}, 100)
+setTimeout(function() {
+document.getElementById("serverContainer").style.height = "0%";
+}, 500)
+setTimeout(function() {
+document.getElementById("serverContainer").style.width = "0%";
+}, 1100)
+setTimeout(function() {
+document.getElementById("serverPage").style.opacity = 0;
+}, 1700)
+setTimeout(function() {
+document.getElementById("serverPage").style.display = "none";
+}, 2200)
+}
+if (e.target.id === "serverJoinBTN") {
+var joinForm = document.getElementById("joinServerForm");
+var joinScriptURL = "https://script.google.com/macros/s/AKfycbzAZwarw9ifSCINivMOiSKhn-ME6BCsVPlP5Q-sW3nWo9dTWXxNyQYqxbTtaMx_n77unA/exec";
+var serverName = "";
+for (let i = 0; i < serverData.length; i++) {
+if (serverData[i]["SERVERCODES"] === document.getElementById("joinServerName").value) {
+document.getElementById("joinServerName").value = serverData[i]["SERVERLIST"];
+fetch(joinScriptURL, {method:"POST", body: new FormData(joinForm)});
+setTimeout(function() {
+location.reload();
+}, 500)
+} else if (i === serverData.length - 1) {
+alert("Invalid join code!");
+}
+setTimeout(function() {
+document.getElementById("joinServerName").value = "";
+}, 100)
+}
+}
+if (e.target.id === "signoutBTN") {
+localStorage.removeItem("username");
+localStorage.removeItem("password");
+location.reload();
+}
+if (e.target.id === "memberListBTN") {
+var members = document.getElementsByClassName("member");
+while (members[0]) {
+members[0].remove();
+}
+document.getElementById("memberListTitle").textContent = document.getElementById("serverName").value;
+for (let i = 0; i < serverData.length; i++) {
+for (let a = 0; a < serverData.length; a++) {
+if (serverData[i]["USER - " + serverData[a]["USERNAMES"]] === document.getElementById("serverName").value) {
+var member = document.createElement("div");
+member.className = "member";
+var memberIcon = document.createElement("div");
+memberIcon.id = "memberIcon";
+var colors = ["tomato", "orange", "mediumseagreen", "dodgerBlue", "violet"];
+memberIcon.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+memberIcon.textContent = serverData[a]["USERNAMES"];
+if (serverData[a]["USERNAMES"].split(" ")[1] !== undefined) {
+memberIcon.textContent = serverData[a]["USERNAMES"].split(" ")[0][0] + serverData[a]["USERNAMES"].split(" ")[1][0];
+} else {
+memberIcon.textContent = serverData[a]["USERNAMES"][0];
+}
+var memberName = document.createElement("div");
+memberName.id = "memberName";
+memberName.textContent = serverData[a]["USERNAMES"];
+document.getElementById("memberList").appendChild(member);
+member.appendChild(memberIcon);
+member.appendChild(memberName);
+}
+}
+}
+document.getElementById("memberList").style.right = "0";
+document.getElementById("memberListBox").style.display = "block";
+}
+if (e.target.id === "memberListBox") {
+document.getElementById("memberList").style.right = "-25%";
+document.getElementById("memberListBox").style.display = "none";
+}
+if (e.target.id === "dmsBTN" || e.target.className === "notificationIcon") {
+document.getElementById("dmsPage").style.display = "block";
+document.getElementById("dmsPage").style.right = 0;
+document.getElementById("dmChat").style.display = "none";
+localStorage.setItem("dmSave", JSON.stringify(document.getElementsByClassName("dmMessage")));
+document.getElementsByClassName("notificationIcon")[0].style.display = "none";
+}
+})  
+function openSignup() {
+var loginPage = document.getElementById("loginContainer");
+var signupPage = document.getElementById("signupContainer");
+loginPage.style.transform = "translate(0, -2vw)";
+loginPage.style.opacity = 0;
+setTimeout(function() {
+document.getElementById("signupPage").style.display = "flex";
+document.getElementById("loginPage").style.display = "none";
+setTimeout(function() {
+signupPage.style.transform = "translate(0)";
+signupPage.style.opacity = 1;
+}, 300)
+}, 500)
+}
+function openLogin() {
+var loginPage = document.getElementById("loginContainer");
+var signupPage = document.getElementById("signupContainer");
+signupPage.style.transform = "translate(0, -2vw)";
+signupPage.style.opacity = 0;
+setTimeout(function() {
+document.getElementById("signupPage").style.display = "none";
+document.getElementById("loginPage").style.display = "flex";
+setTimeout(function() {
+loginPage.style.transform = "translate(0)";
+loginPage.style.opacity = 1;
+}, 300)
+}, 500)
+}
+document.getElementById("loginUsername").addEventListener("keyup", e => {
+if (e.key === "Enter" && document.getElementById("loginUsername").value !== "" && document.getElementById("loginPassword").value !== "") {
+login();
+}
+if (document.getElementById("loginUsername").value !== "" && document.getElementById("loginPassword").value !== "") {
+document.getElementsByClassName("loginSubmit")[0].classList.add("active");
+} else {
+document.getElementsByClassName("loginSubmit")[0].classList.remove("active");
+}
+})
+document.getElementById("loginPassword").addEventListener("keyup", e => {
+if (e.key === "Enter" && document.getElementById("loginUsername").value !== "" && document.getElementById("loginPassword").value !== "") {
+login();
+}
+if (document.getElementById("loginUsername").value !== "" && document.getElementById("loginPassword").value !== "") {
+document.getElementsByClassName("loginSubmit")[0].classList.add("active");
+} else {
+document.getElementsByClassName("loginSubmit")[0].classList.remove("active");
+}
+})
+document.getElementById("signupPassword").addEventListener("keyup", e => {
+if (e.key === "Enter" && document.getElementById("signupUsername").value !== "" && document.getElementById("signupPassword").value !== "") {
+signup();
+}
+if (document.getElementById("signupUsername").value !== "" && document.getElementById("signupPassword").value !== "") {
+document.getElementsByClassName("signupSubmit")[0].classList.add("active");
+} else {
+document.getElementsByClassName("signupSubmit")[0].classList.remove("active");
+}
+})
+document.getElementById("signupUsername").addEventListener("keyup", e => {
+if (e.key === "Enter" && document.getElementById("signupUsername").value !== "" && document.getElementById("signupPassword").value !== "") {
+signup();
+}
+if (document.getElementById("signupUsername").value !== "" && document.getElementById("signupPassword").value !== "") {
+document.getElementsByClassName("signupSubmit")[0].classList.add("active");
+} else {
+document.getElementsByClassName("signupSubmit")[0].classList.remove("active");
+}
+})
+function signup() {
+var exists = false;
+for (let i = 0; i < serverData.length; i++) {
+if (document.getElementById("signupUsername").value === serverData[i]["USERNAMES"]) {
+exists = true;
+alert(exists)
+}
+if (i === serverData.length - 1) {
+if (exists) {
+alert("Username is not available.");
+document.getElementById("signupUsername").value = "";
+document.getElementById("signupPassword").value = "";
+} else {
+var signupForm = document.getElementById("signupForm");
+var scriptURL = "https://script.google.com/macros/s/AKfycbz9cYHq-AGvYjduCyvK5miIUF7NeE-RcVEGrFk-uUxtYvhwuS4bKXBWWwCe_ulIaiz2Yw/exec";
+if (document.getElementById("signupUsername").value.trim() !== "" && document.getElementById("signupPassword").value.trim() !== "" && !document.getElementById("signupUsername").value.includes("-") && document.getElementById("signupUsername") !== "SERVERLIST" && document.getElementById("signupUsername") !== "SERVERCODES" && document.getElementById("signupUsername") !== "USERNAMES" && document.getElementById("signupUsername") !== "PASSWORDS" && document.getElementById("signupUsername") !== "VERIFIEDSUPPORTERS") {
+fetch(scriptURL, {method:"POST", body: new FormData(signupForm)});
+localStorage.setItem("username", document.getElementById("signupUsername").value.trim());
+localStorage.setItem("password", document.getElementById("signupPassword").value)
+setTimeout(function() {
+location.reload();
+}, 1500)
+}
+}
+}
+}
+}
+function login() {
+if (document.getElementById("loginUsername").value.trim() !== "") {
+var logged = false;
+if (localStorage.getItem("username") !== "") {
+for (let i = 0; i < serverData.length; i++) {
+if (serverData[i]["USERNAMES"] === document.getElementById("loginUsername").value && serverData[i]["PASSWORDS"] === document.getElementById("loginPassword").value) {
+loadData(document.getElementById("loginUsername").value);
+document.getElementById("loginPage").style.display = "none";
+logged = true;
+localStorage.setItem("username", document.getElementById("loginUsername").value);
+localStorage.setItem("password", document.getElementById("loginPassword").value);
+} else if (i === serverData.length - 1 && logged === false) {
+alert("Invalid username or password.");
+}
+}
+}
+}
+}
+function updateData() {
+var url1 = 'https://sheetdb.io/api/v1/2azyssbcwwacw';
+var url2 = "https://sheetdb.io/api/v1/wcerjuwpbkhvo";
+var url3 = "https://sheetdb.io/api/v1/8zatodczc4enz";
+var url4 = "https://sheetdb.io/api/v1/g0gt4agnkmn56";
+var url5 = "https://sheetdb.io/api/v1/613iki47ujrb8";
+var url6 = "https://sheetdb.io/api/v1/vldnnozbyi93a";
+var url7 = "https://sheetdb.io/api/v1/uahn0pubbiorb";
+var url8 = "https://sheetdb.io/api/v1/g7npwb3ufk0ch";
+var url9 = "https://sheetdb.io/api/v1/jgkigxxi4o1hv";
+fetch(url1).then(response => { 
+return response.json(); 
+}).then(data => { 
+serverData = data;
+if (data[0] === undefined) {
+fetch(url2).then(response => { 
+return response.json(); 
+}).then(data => { 
+serverData = data;
+if (data[0] === undefined) {
+fetch(url3).then(response => { 
+return response.json(); 
+}).then(data => { 
+serverData = data;
+if (data[0] === undefined) {
+fetch(url4).then(response => { 
+return response.json(); 
+}).then(data => { 
+serverData = data;
+if (data[0] === undefined) {
+fetch(url5).then(response => { 
+return response.json(); 
+}).then(data => { 
+serverData = data;
+if (data[0] === undefined) {
+fetch(url6).then(response => { 
+return response.json(); 
+}).then(data => { 
+serverData = data;
+if (data[0] === undefined) {
+fetch(url7).then(response => { 
+return response.json(); 
+}).then(data => { 
+serverData = data;
+if (data[0] === undefined) {
+fetch(url8).then(response => { 
+return response.json(); 
+}).then(data => { 
+serverData = data;
+if (data[0] === undefined) {
+fetch(url9).then(response => { 
+return response.json(); 
+}).then(data => { 
+serverData = data;
+if (data[0] === undefined) {
+loadError("503", "Our servers are currently down. Check back later!");
+}
+})
+}
+})
+}
+})
+}
+})
+}
+})
+}
+})
+}
+})
+}
+})
+}
+})
+}
+updateData();
+function loadData(username) {
+var dates = [];
+setTimeout(function() {
+document.getElementById("logAccount").value = username;
+var logScript = "https://script.google.com/macros/s/AKfycbzPrJr3c1eP49jdq4x9URPn8XuLCRTJUNE2LPJ083a2tqfWO7HpPau5VksBn22tELaK/exec";
+fetch(logScript, {method: "POST", body: new FormData(document.getElementById("logForm"))});
+document.getElementById("chatUsername").value = username;
+document.getElementById("serverUsername").value = username;
+document.getElementById("joinServerUsername").value = username;
+document.getElementById("dmUsername").value = username;
+var count = 0;
+var newMessages = [];
+for (let a = 0; a < serverData.length; a++) {
+if (username === "" ||serverData[a]["BLOCKEDUUIDS"] === localStorage.getItem("UUID")) {
+loaded = true;
+loadError("403", "You have been banned from Racket. Contact 012578@clioschools.net for more information.");
+}
+if (serverData[a]["DIRECTMESSAGES"].split(" + ")[0].split(" / ")[0] === username || serverData[a]["DIRECTMESSAGES"].split(" + ")[0].split(" / ")[1] === username) {
+count += 1;
+newMessages.push(serverData[a]["DIRECTMESSAGES"]);
+dates.push(serverData[a]["TIMESTAMP"]);
+}
+}
+setTimeout(function() {
+var dmnames = [];
+for (let b = newMessages.length - 1; b > 0; b--) {
+if (!Object.values(dmnames).includes(newMessages[b].split(" + ")[1].split(" - ")[0]) && newMessages[b].split(" + ")[1].split(" - ")[0] !== document.getElementById("dmUsername").value) {
+dmnames.push(newMessages[b].split(" + ")[1].split(" - ")[0]);
+var messageData = newMessages[b];
+var ele = document.createElement("div");
+ele.className = "dmMessage";
+ele.name = messageData.split(" + ")[1].split(" - ")[0];
+var icon = document.createElement("div");
+icon.id = "icon";
+icon.name = messageData.split(" + ")[1].split(" - ")[0];
+var username = document.createElement("a");
+username.id = "username";
+username.name = messageData.split(" + ")[1].split(" - ")[0];
+var timestamp = document.createElement("div");
+timestamp.id = "timestamp";
+timestamp.textContent = dates[b];
+timestamp.name = messageData.split(" + ")[1].split(" - ")[0];
+username.textContent = messageData.split(" + ")[1].split(" - ")[0] + " ";
+if (messageData.split(" + ")[1].split(" - ")[0].trim().includes(" ") && messageData !== "") {
+icon.textContent = messageData.split(" + ")[1].split(" - ")[0].split(" ")[0][0] + messageData.split(" + ")[1].split(" - ")[0].split(" ")[1][0];
+} else {
+icon.textContent = messageData.split(" + ")[1].split(" - ")[0][0];
+}
+var colors = ["tomato", "orange", "mediumseagreen", "dodgerBlue", "violet"];
+icon.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+document.getElementById("dmContainer").appendChild(ele);
+ele.appendChild(icon);
+ele.appendChild(username);
+ele.appendChild(timestamp);
+for (let i = 0; i < serverData.length; i++) {
+if (serverData[i]["VERIFIEDSUPPORTERS"] === messageData.split(" + ")[1].split(" - ")[0]) {
+var vs = document.createElement("a");
+vs.id = "verified";
+vs.className = "material-icons";
+vs.title = "Verified Supporter";
+vs.textContent = "verified_user";
+vs.name = messageData.split(" + ")[1].split(" - ")[0];
+ele.appendChild(vs);
+}
+}
+ele.addEventListener("click", e => {
+document.getElementById("dmChat").style.display = "block";
+document.getElementById("dmName").value = document.getElementById("dmUsername").value.trim() + " / " + e.target.name.trim();
+var messages = document.getElementsByClassName("message");
+while (messages[0]) {
+messages[0].remove();
+}
+var dmMessages = [];
+var names = [];
+names.push(document.getElementById("dmUsername").value.trim(), e.target.name.trim());
+var final = "";
+var characters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890`";
+if (characters.indexOf(names[0][0]) > characters.indexOf(names[1][0])) {
+final = names[1] + " / " + names[0];
+} else if (characters.indexOf(names[0][0]) < characters.indexOf(names[1][0])) {
+final = names[0] + " / " + names[1];
+} else if (names[0][0] === names[1][0]) {
+for (let i = 1; i < names[0].length; i++) {
+if (characters.indexOf(names[0][i]) > characters.indexOf(names[1][i])) {
+final = names[1] + " / " + names[0];
+} else {
+final = names[0] + " / " + names[1];
+}
+}
+}
+document.getElementById("dmName").value = names.sort()[0] + " / " + names.sort()[1];
+var dmDates = [];
+var check = setInterval(function() {
+if (final !== "") {
+clearInterval(check);
+for (let i = 0; i < serverData.length; i++) {
+if (serverData[i]["DIRECTMESSAGES"].split(" + ")[0] === final || serverData[i]["DIRECTMESSAGES"].split(" + ")[0] === final.split(" / ")[1] + " / " + final.split(" / ")[0]) {
+dmMessages.push(serverData[i]["DIRECTMESSAGES"]);
+dmDates.push(serverData[i]["TIMESTAMP"]);
+}
+if (i === serverData.length - 1) {
+finish();
+}
+}
+}
+})
+function finish() {
+for (let i = 0; i < serverData.length; i++) {
+var messageData = dmMessages;
+var ele = document.createElement("div");
+ele.className = "message";
+var header = document.createElement("div");
+header.className = "header";
+var icon = document.createElement("div");
+icon.id = "icon";
+var username = document.createElement("a");
+username.id = "username";
+var text = document.createElement("a");
+text.id = "messageText";
+var timestamp = document.createElement("div");
+timestamp.id = "timestamp";
+timestamp.textContent = dmDates[i];
+username.textContent = messageData[i].split(" + ")[1].split(" - ")[0] + " ";
+if (messageData[i].split(" - ")[0].trim().includes(" ") && messageData[i] !== "") {
+icon.textContent = messageData[i].split(" - ")[0].split(" ")[0][0] + messageData[i].split(" - ")[0].split(" ")[1][0].replace("/", "");
+} else {
+icon.textContent = messageData[i].split(" - ")[0][0].replace("/", "");
+}
+var colors = ["tomato", "orange", "mediumseagreen", "dodgerBlue", "violet"];
+icon.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+text.textContent = messageData[i].split(" - ")[1];
+document.getElementById("dmChat").appendChild(ele);
+ele.appendChild(header);
+header.appendChild(icon);
+header.appendChild(username);
+ele.appendChild(text);
+ele.appendChild(timestamp);
+for (let a = 0; a < serverData.length; a++) {
+if (messageData[i] !== undefined && serverData[a]["VERIFIEDSUPPORTERS"] === messageData[i].split(" + ")[1].split(" - ")[0]) {
+var vs = document.createElement("a");
+vs.id = "verified";
+vs.className = "material-icons";
+vs.title = "Verified Supporter";
+vs.textContent = "verified_user";
+username.appendChild(vs);
+}
+}
+document.getElementById("dmChat").scrollTo(0,document.getElementById("dmChat").scrollHeight);
+}
+}
+})
+}
+}
+var dmEles = document.getElementsByClassName("dmMessage");
+if (localStorage.getItem("dmSave") === null) {
+localStorage.setItem("dmSave", JSON.stringify(dmEles));
+}
+if (localStorage.getItem("dmSave") !== JSON.stringify(dmEles)) {
+document.getElementsByClassName("notificationIcon")[0].style.display = "block";
+}
+}, 1000)
+for (let i = 0; i < serverData.length; i++) {
+if (serverData[i]["USER - " + username.trim()] !== "" && serverData[i]["USER - " + username.trim()] !== undefined) {
+var user = serverData[i]["USER - " + username.trim()];
+var serverEle = document.createElement("div");
+serverEle.name = user;
+serverEle.textContent = serverData[i]["USER - " + username.trim()][0];
+serverEle.className = "server";
+document.getElementsByClassName("sidebar")[0].appendChild(serverEle);
+document.getElementsByClassName("sidebar")[0].appendChild(document.getElementsByClassName("addServer")[0]);
+}
+}
+for (let i = 0; i < serverData.length; i++) {
+var messageData = serverData[i]["Racket"];
+if (messageData !== "") {
+var ele = document.createElement("div");
+ele.className = "message";
+ele.name = serverData[i]["TIMESTAMP"];
+var header = document.createElement("div");
+header.className = "header";
+var icon = document.createElement("div");
+icon.id = "icon";
+var usernameEle = document.createElement("a");
+usernameEle.id = "username";
+var text = document.createElement("a");
+text.id = "messageText";
+var timestamp = document.createElement("div");
+timestamp.id = "timestamp";
+timestamp.textContent = serverData[i]["TIMESTAMP"];
+usernameEle.textContent = messageData.split(" - ")[0] + " ";
+if (messageData.split(" - ")[0].trim().includes(" ") && messageData !== "") {
+icon.textContent = messageData.split(" - ")[0].split(" ")[0][0] + messageData.split(" - ")[0].split(" ")[1][0];
+} else {
+icon.textContent = messageData.split(" - ")[0][0];
+}
+var colors = ["tomato", "orange", "mediumseagreen", "dodgerBlue", "violet"];
+icon.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+text.textContent = messageData.split(" - ")[1];
+document.getElementById("chat").appendChild(ele);
+ele.appendChild(header);
+ele.appendChild(timestamp);
+header.appendChild(icon);
+header.appendChild(usernameEle);
+ele.appendChild(text);
+document.getElementById("chat").scrollTo(0,document.getElementById("chat").scrollHeight);
+for (let i = 0; i < serverData.length; i++) {
+if (serverData[i]["VERIFIEDSUPPORTERS"] === messageData.split(" - ")[0]) {
+var vs = document.createElement("a");
+vs.id = "verified";
+vs.className = "material-icons";
+vs.title = "Verified Supporter";
+vs.textContent = "verified_user";
+usernameEle.appendChild(vs);
+}
+}
+}
+}
+}, 500)
+}
+window.alert = function(text) {
+document.getElementById("alert").textContent = text;
+document.getElementById("alert").style.top = "3%";
+}
+function closeAlert() {
+document.getElementById("alert").style.top = "-7%";
+}
+setTimeout(function() {
+if (serverData !== null && localStorage.getItem("username") !== null && localStorage.getItem("password") !== null) {
+loadData(localStorage.getItem("username"));
+document.getElementById("loginPage").style.display = "none";
+document.getElementById("dmsPage").style.display = "block";     
+}
+document.body.style.opacity = 1;
+}, loadTime)
+function loadError(code, text) {
+var errorPage = document.createElement("div");
+errorPage.id = "errorPage";
+errorPage.style.display = "block";
+var errorPageCode = document.createElement("div");
+errorPageCode.id = "errorPageCode";
+errorPageCode.textContent = code;
+var errorPageText = document.createElement("div");
+errorPageText.id = "errorPageText";
+errorPageText.textContent = text;
+var retryBTN = document.createElement("div");
+retryBTN.className = "retryBTN";
+retryBTN.onclick = "location.reload()";
+retryBTN.textContent = "Retry";
+document.body.appendChild(errorPage);
+errorPage.appendChild(errorPageCode);
+errorPage.appendChild(errorPageText);
+errorPage.appendChild(retryBTN);
+}
+setTimeout(function() {
+var serverEles = document.getElementsByClassName("server");
+for (let i = 0; i < serverEles.length; i++) {
+serverEles[i].addEventListener("mouseover", e => {
+document.getElementById("serverNameElement").style.top = serverEles[i].getBoundingClientRect().top;
+document.getElementById("serverNameElement").textContent = serverEles[i].name;
+document.getElementById("serverNameElement").style.display = "flex";
+})
+serverEles[i].addEventListener("mouseout", e => {
+document.getElementById("serverNameElement").style.display = "none";
+})
+}
+}, loadTime*2)
+var userSearch = document.getElementById("userSearch");
+userSearch.addEventListener("keyup", e => {
+if (e.key === "Enter" && userSearch.value.trim() !== "") {
+var userTo = userSearch.value.trim();
+var exists = false;
+for (let i = 0; i < serverData.length; i++) {
+if (serverData[i]["USERNAMES"] === userTo) {
+exists = true;
+}
+if (i === serverData.length - 1) {
+if (exists) {
+userSearch.blur();
+document.getElementById("dmChat").style.display = "block";
+var names = [];
+names.push(document.getElementById("dmUsername").value, userTo);
+names.sort();
+document.getElementById("dmName").value = document.getElementById("dmUsername").value + " / " + userTo;
+userSearch.value = "";
+var messages = document.getElementsByClassName("message");
+while (messages[0]) {
+messages[0].remove();
+}
+var dmMessages = [];
+for (let i = 0; i < serverData.length; i++) {
+if (serverData[i]["DIRECTMESSAGES"].split(" + ")[0] === names[0] + " / " + names[1]) {
+dmMessages.push(serverData[i]["DIRECTMESSAGES"]);
+}
+}
+for (let i = 0; i < serverData.length; i++) {
+var messageData = dmMessages;
+var ele = document.createElement("div");
+ele.className = "message";
+var header = document.createElement("div");
+header.className = "header";
+var icon = document.createElement("div");
+icon.id = "icon";
+var username = document.createElement("a");
+username.id = "username";
+var text = document.createElement("a");
+text.id = "messageText";
+var timestamp = document.createElement("div");
+timestamp.id = "timestamp";
+timestamp.textContent = serverData[i]["TIMESTAMP"];
+username.textContent = messageData[i].split(" + ")[1].split(" - ")[0] + " ";
+if (username.textContent.trim().includes(" ")) {
+icon.textContent = username.textContent.split(" ")[0][0] + username.textContent.split(" ")[1][0];
+} else {
+icon.textContent = username.textContent[0];
+}
+var colors = ["tomato", "orange", "mediumseagreen", "dodgerBlue", "violet"];
+icon.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+text.textContent = messageData[i].split(" - ")[1];
+document.getElementById("dmChat").appendChild(ele);
+ele.appendChild(header);
+header.appendChild(icon);
+header.appendChild(username);
+ele.appendChild(text);
+ele.appendChild(timestamp);
+for (let a = 0; a < serverData.length; a++) {
+if (messageData[i] !== undefined && serverData[a]["VERIFIEDSUPPORTERS"] === messageData[i].split(" + ")[1].split(" - ")[0]) {
+var vs = document.createElement("a");
+vs.id = "verified";
+vs.className = "material-icons";
+vs.title = "Verified Supporter";
+vs.textContent = "verified_user";
+username.appendChild(vs);
+}
+}
+document.getElementById("dmChat").scrollTo(0,document.getElementById("dmChat").scrollHeight);
+}
+} else {
+alert("Username does not exist.");
+userSearch.value = "";
+}
+}
+}
+}
+})
+document.getElementById("dmMessage").addEventListener("keyup", e => {
+if (e.key === "Enter" && document.getElementById("dmMessage").value.trim() !== "") {
+var scriptURL = "https://script.google.com/macros/s/AKfycbzgw19-u_xob7hItVDacgQ4wpfDiga7vEHdp9O1--LE4f14-x0N0AADPbZjQyrJpN1qdg/exec";
+var dmForm = document.getElementById("dmForm");
+fetch(scriptURL, {method: "POST", body: new FormData(dmForm)});
+document.getElementById("dmMessage").value = "";
+}
+})
+if (localStorage.getItem("UUID") === null) {
+localStorage.setItem("UUID", crypto.randomUUID());
+}
+document.getElementById("uuid").value = localStorage.getItem("UUID");
+</script>
+<!-- MADE BY LUKE SKUTT, 2023 -->                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             
